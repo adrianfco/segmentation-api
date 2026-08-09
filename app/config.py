@@ -8,8 +8,6 @@ _BYTES_PER_MB = 1024 * 1024
 
 
 class Settings(BaseSettings):
-    """Load and validate .env environment variables"""
-
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="forbid")
 
     # Application

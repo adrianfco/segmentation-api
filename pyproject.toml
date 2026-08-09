@@ -37,7 +37,3 @@ select = ["E", "F", "I", "W", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = [
-    "integration: tests that require real external services (excluded from CI)",
-]
-addopts = "-m 'not integration'"
