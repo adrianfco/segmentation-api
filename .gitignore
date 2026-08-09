@@ -24,6 +24,3 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
-
-# Local scripts
-tools/

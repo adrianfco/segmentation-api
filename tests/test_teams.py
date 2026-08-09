@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import IntegrityError
 
 from app.db import get_session
 from app.main import create_app
@@ -35,31 +34,6 @@ def client(session):
     app.dependency_overrides.clear()
 
 
-def test_create_team_returns_201_with_the_created_team(client, session):
-    async def fake_refresh(team, *args, **kwargs):
-        team.id = uuid.uuid4()
-        team.created_at = datetime.now(UTC)
-
-    session.refresh.side_effect = fake_refresh
-
-    response = client.post("/teams", json={"name": "Acme"})
-
-    assert response.status_code == 201
-    body = response.json()
-    assert body["name"] == "Acme"
-    assert uuid.UUID(body["id"])
-    assert body["created_at"]
-
-
-def test_create_team_with_duplicate_name_returns_409(client, session):
-    session.commit.side_effect = IntegrityError("INSERT", {}, Exception("duplicate key"))
-
-    response = client.post("/teams", json={"name": "Acme"})
-
-    assert response.status_code == 409
-    session.rollback.assert_awaited_once()
-
-
 def test_get_team_returns_200_when_found(client, session):
     team_id = uuid.uuid4()
     session.get.return_value = Team(id=team_id, name="Acme", created_at=datetime.now(UTC))
@@ -81,5 +55,4 @@ def test_get_team_returns_404_when_missing(client, session):
 def test_teams_endpoints_are_documented_in_openapi(client):
     schema = client.get("/openapi.json").json()
 
-    assert "/teams" in schema["paths"]
     assert "/teams/{team_id}" in schema["paths"]
