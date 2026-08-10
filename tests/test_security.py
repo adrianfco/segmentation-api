@@ -6,7 +6,12 @@ import pytest
 from fastapi import HTTPException
 
 from app.models import ApiKey, Team
-from app.security import generate_api_key, get_current_team, hash_api_key
+from app.security import api_key_header, generate_api_key, get_current_team, hash_api_key
+
+
+def test_api_key_header_scheme_is_declared():
+    assert api_key_header.model.name == "X-API-Key"
+    assert api_key_header.auto_error is False
 
 
 def test_generate_api_key_returns_unique_high_entropy_values():
@@ -41,6 +46,14 @@ async def test_get_current_team_returns_team_for_valid_key(session):
     team = await get_current_team(x_api_key="valid-key", session=session)
 
     assert team.id == team_id
+
+
+async def test_get_current_team_rejects_missing_key(session):
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_team(x_api_key=None, session=session)
+
+    assert exc_info.value.status_code == 401
+    session.scalar.assert_not_awaited()
 
 
 async def test_get_current_team_rejects_unknown_key(session):
