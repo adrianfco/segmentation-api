@@ -14,6 +14,6 @@ class Image(Base):
     team_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("teams.id", ondelete="CASCADE"), index=True
     )
+    filename: Mapped[str] = mapped_column(String(255))
     storage_path: Mapped[str] = mapped_column(String(500))
-    content_type: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

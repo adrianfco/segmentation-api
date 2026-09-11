@@ -1,4 +1,6 @@
-from app.models import ApiKey, Base, Image, SegmentationJob, Team
+from sqlalchemy.dialects.postgresql import JSONB
+
+from app.models import ApiKey, Base, Image, JobStatus, SegmentationJob, Team
 
 
 def test_team_is_registered_on_the_shared_metadata():
@@ -42,8 +44,10 @@ def test_image_is_registered_on_the_shared_metadata():
 def test_image_columns_are_as_expected():
     columns = Base.metadata.tables["images"].columns
 
-    assert {"id", "team_id", "storage_path", "content_type", "created_at"} == set(columns.keys())
+    assert {"id", "team_id", "filename", "storage_path", "created_at"} == set(columns.keys())
     assert columns["id"].primary_key
+    assert not columns["filename"].nullable
+    assert not columns["filename"].unique
     assert columns["created_at"].server_default is not None
     assert columns["team_id"].index
     team_fk = next(iter(columns["team_id"].foreign_keys))
@@ -64,12 +68,14 @@ def test_segmentation_job_columns_are_as_expected():
         "team_id",
         "image_id",
         "status",
+        "params",
         "result_path",
         "error_message",
         "created_at",
         "updated_at",
     } == set(columns.keys())
     assert columns["id"].primary_key
+    assert not columns["params"].nullable
     assert columns["result_path"].nullable
     assert columns["error_message"].nullable
     assert columns["created_at"].server_default is not None
@@ -83,6 +89,22 @@ def test_segmentation_job_columns_are_as_expected():
     assert team_fk.ondelete == "CASCADE"
     assert image_fk.column is images.c.id
     assert image_fk.ondelete == "CASCADE"
+
+
+def test_job_status_values():
+    assert [s.value for s in JobStatus] == ["queued", "running", "succeeded", "failed"]
+
+
+def test_segmentation_job_status_defaults_to_queued():
+    columns = Base.metadata.tables["segmentation_jobs"].columns
+
+    assert columns["status"].default.arg is JobStatus.queued
+
+
+def test_segmentation_job_params_is_jsonb():
+    columns = Base.metadata.tables["segmentation_jobs"].columns
+
+    assert isinstance(columns["params"].type, JSONB)
 
 
 def test_segmentation_job_has_composite_team_status_index():
