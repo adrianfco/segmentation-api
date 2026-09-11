@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Uploads
     max_upload_size_mb: int = Field(default=10, ge=1, le=50)
 
+    # Downloads
+    signed_url_expires_seconds: int = Field(default=600, ge=60, le=900)
+
     @property
     def database_url_str(self) -> str:
         return str(self.database_url.get_secret_value())

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.models import Image, Team
-from app.schemas.common import Page, PaginationParams
+from app.schemas.common import Page, PaginationParams, SignedUrlResponse
 from app.schemas.images import ImageResponse
 from app.security import get_current_team
 from app.storage import StorageClient, StorageError, get_storage
@@ -92,3 +92,27 @@ async def get_image(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
     return ImageResponse.model_validate(image)
+
+
+@router.get("/{image_id}/download-url", response_model=SignedUrlResponse)
+async def get_image_download_url(
+    image_id: uuid.UUID,
+    team: Team = Depends(get_current_team),
+    session: AsyncSession = Depends(get_session),
+    storage: StorageClient = Depends(get_storage),
+    settings: Settings = Depends(get_settings),
+) -> SignedUrlResponse:
+    image = await session.scalar(
+        select(Image).where(Image.id == image_id, Image.team_id == team.id)
+    )
+    if image is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+
+    try:
+        return await storage.create_signed_url(
+            image.storage_path, settings.signed_url_expires_seconds
+        )
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="Storage unavailable"
+        ) from exc

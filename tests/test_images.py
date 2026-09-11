@@ -8,6 +8,7 @@ from app.config import Settings, get_settings
 from app.db import get_session
 from app.main import create_app
 from app.models import Image, Team
+from app.schemas.common import SignedUrlResponse
 from app.security import get_current_team
 from app.storage import StorageError, get_storage
 
@@ -184,3 +185,48 @@ def test_get_image_invalid_id_returns_422():
         response = client.get("/v1/images/not-a-uuid")
 
     assert response.status_code == 422
+
+
+def test_image_download_url_returns_signed_url():
+    team, session, storage = make_team(), make_session(), AsyncMock()
+    image = make_image(team)
+    session.scalar.return_value = image
+    storage.create_signed_url.return_value = SignedUrlResponse(
+        url="https://example.supabase.co/storage/v1/object/sign/img.png?token=abc",
+        expires_at=datetime.now(UTC),
+    )
+
+    with make_client(session, storage, team) as client:
+        response = client.get(f"/v1/images/{image.id}/download-url")
+
+    assert response.status_code == 200
+    assert set(response.json()) == {"url", "expires_at"}
+    storage.create_signed_url.assert_awaited_once_with(image.storage_path, 600)
+
+    params = session.scalar.call_args.args[0].compile().params.values()
+    assert image.id in params
+    assert team.id in params
+
+
+def test_image_download_url_not_found_returns_404():
+    session, storage = make_session(), AsyncMock()
+    session.scalar.return_value = None
+
+    with make_client(session, storage, make_team()) as client:
+        response = client.get(f"/v1/images/{uuid.uuid4()}/download-url")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Image not found"}
+    storage.create_signed_url.assert_not_awaited()
+
+
+def test_image_download_url_storage_failure_returns_502():
+    team, session, storage = make_team(), make_session(), AsyncMock()
+    image = make_image(team)
+    session.scalar.return_value = image
+    storage.create_signed_url.side_effect = StorageError("Storage returned 500", 500)
+
+    with make_client(session, storage, team) as client:
+        response = client.get(f"/v1/images/{image.id}/download-url")
+
+    assert response.status_code == 502
