@@ -1,11 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.models import Image, Team
+from app.schemas.common import Page, PaginationParams
 from app.schemas.images import ImageResponse
 from app.security import get_current_team
 from app.storage import StorageClient, StorageError, get_storage
@@ -51,5 +53,42 @@ async def upload_image(
     session.add(image)
     await session.commit()
     await session.refresh(image)
+
+    return ImageResponse.model_validate(image)
+
+
+@router.get("", response_model=Page[ImageResponse])
+async def list_images(
+    pagination: PaginationParams = Query(),
+    team: Team = Depends(get_current_team),
+    session: AsyncSession = Depends(get_session),
+) -> Page[ImageResponse]:
+    total = await session.scalar(
+        select(func.count()).select_from(Image).where(Image.team_id == team.id)
+    )
+    images = await session.scalars(
+        select(Image)
+        .where(Image.team_id == team.id)
+        .order_by(Image.created_at.desc(), Image.id.desc())
+        .limit(pagination.limit)
+        .offset(pagination.offset)
+    )
+
+    return Page[ImageResponse](
+        items=images.all(), total=total, limit=pagination.limit, offset=pagination.offset
+    )
+
+
+@router.get("/{image_id}", response_model=ImageResponse)
+async def get_image(
+    image_id: uuid.UUID,
+    team: Team = Depends(get_current_team),
+    session: AsyncSession = Depends(get_session),
+) -> ImageResponse:
+    image = await session.scalar(
+        select(Image).where(Image.id == image_id, Image.team_id == team.id)
+    )
+    if image is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
     return ImageResponse.model_validate(image)
