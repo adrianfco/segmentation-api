@@ -5,11 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import Settings, get_settings
 from app.db import get_session
 from app.models import Image, JobStatus, SegmentationJob, Team
-from app.schemas.common import Page, PaginationParams
+from app.schemas.common import Page, PaginationParams, SignedUrlResponse
 from app.schemas.jobs import JobCreate, JobResponse
 from app.security import get_current_team
+from app.storage import StorageClient, StorageError, get_storage
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -91,3 +93,31 @@ async def get_job(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
     return JobResponse.model_validate(job)
+
+
+@router.get("/{job_id}/result-url", response_model=SignedUrlResponse)
+async def get_job_result_url(
+    job_id: uuid.UUID,
+    team: Team = Depends(get_current_team),
+    session: AsyncSession = Depends(get_session),
+    storage: StorageClient = Depends(get_storage),
+    settings: Settings = Depends(get_settings),
+) -> SignedUrlResponse:
+    job = await session.scalar(
+        select(SegmentationJob).where(
+            SegmentationJob.id == job_id, SegmentationJob.team_id == team.id
+        )
+    )
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+    if job.status is not JobStatus.succeeded:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=f"Job status is {job.status}"
+        )
+
+    try:
+        return await storage.create_signed_url(job.result_path, settings.signed_url_expires_seconds)
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="Storage unavailable"
+        ) from exc

@@ -5,17 +5,28 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import Settings, get_settings
 from app.db import get_session
 from app.main import create_app
 from app.models import Image, JobStatus, SegmentationJob, Team
+from app.schemas.common import SignedUrlResponse
 from app.security import get_current_team
+from app.storage import StorageError, get_storage
 
 
-def make_client(session, team=None):
+def make_client(session, team=None, storage=None):
     app = create_app()
     app.dependency_overrides[get_session] = lambda: session
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        _env_file=None,
+        database_url="postgresql+psycopg://user:pw@localhost:5432/postgres",
+        supabase_url="https://example.supabase.co/",
+        supabase_service_role_key="service-role-key",
+    )
     if team is not None:
         app.dependency_overrides[get_current_team] = lambda: team
+    if storage is not None:
+        app.dependency_overrides[get_storage] = lambda: storage
     return TestClient(app)
 
 
@@ -51,12 +62,14 @@ def make_body(image_id, **params):
 
 
 def make_job(team, image, status=JobStatus.queued):
+    job_id = uuid.uuid4()
     return SegmentationJob(
-        id=uuid.uuid4(),
+        id=job_id,
         team_id=team.id,
         image_id=image.id,
         status=status,
         params={"algorithm": "kmeans", "k": 4, "max_iters": 100, "seed": 42},
+        result_path=f"{team.id}/results/{job_id}.png",
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
@@ -355,3 +368,80 @@ def test_get_job_without_api_key_returns_401():
         response = client.get(f"/v1/jobs/{uuid.uuid4()}")
 
     assert response.status_code == 401
+
+
+def test_job_result_url_returns_signed_url():
+    team, session, storage = make_team(), make_session(), AsyncMock()
+    job = make_job(team, make_image(team), JobStatus.succeeded)
+    session.scalar.return_value = job
+    storage.create_signed_url.return_value = SignedUrlResponse(
+        url="https://example.supabase.co/storage/v1/object/sign/result.png?token=abc",
+        expires_at=datetime.now(UTC),
+    )
+
+    with make_client(session, team, storage) as client:
+        response = client.get(f"/v1/jobs/{job.id}/result-url")
+
+    assert response.status_code == 200
+    assert response.json()["url"].endswith("result.png?token=abc")
+    storage.create_signed_url.assert_awaited_once_with(job.result_path, 600)
+
+    params = session.scalar.call_args.args[0].compile().params.values()
+    assert job.id in params
+    assert team.id in params
+
+
+@pytest.mark.parametrize("job_status", [JobStatus.queued, JobStatus.running, JobStatus.failed])
+def test_job_result_url_unfinished_returns_409(job_status):
+    team, session, storage = make_team(), make_session(), AsyncMock()
+    job = make_job(team, make_image(team), job_status)
+    session.scalar.return_value = job
+
+    with make_client(session, team, storage) as client:
+        response = client.get(f"/v1/jobs/{job.id}/result-url")
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": f"Job status is {job_status}"}
+    storage.create_signed_url.assert_not_awaited()
+
+
+def test_job_result_url_not_found_returns_404():
+    session, storage = make_session(), AsyncMock()
+    session.scalar.return_value = None
+
+    with make_client(session, make_team(), storage) as client:
+        response = client.get(f"/v1/jobs/{uuid.uuid4()}/result-url")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Job not found"}
+    storage.create_signed_url.assert_not_awaited()
+
+
+def test_job_result_url_storage_failure_returns_502():
+    team, session, storage = make_team(), make_session(), AsyncMock()
+    job = make_job(team, make_image(team), JobStatus.succeeded)
+    session.scalar.return_value = job
+    storage.create_signed_url.side_effect = StorageError("Storage returned 500", 500)
+
+    with make_client(session, team, storage) as client:
+        response = client.get(f"/v1/jobs/{job.id}/result-url")
+
+    assert response.status_code == 502
+    assert response.json() == {"detail": "Storage unavailable"}
+
+
+def test_job_result_url_invalid_id_returns_422():
+    with make_client(make_session(), make_team(), AsyncMock()) as client:
+        response = client.get("/v1/jobs/not-a-uuid/result-url")
+
+    assert response.status_code == 422
+
+
+def test_job_result_url_without_api_key_returns_401():
+    session, storage = make_session(), AsyncMock()
+
+    with make_client(session, storage=storage) as client:
+        response = client.get(f"/v1/jobs/{uuid.uuid4()}/result-url")
+
+    assert response.status_code == 401
+    storage.create_signed_url.assert_not_awaited()
