@@ -1,12 +1,13 @@
 import secrets
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.models import Image, JobStatus, SegmentationJob, Team
+from app.schemas.common import Page, PaginationParams
 from app.schemas.jobs import JobCreate, JobResponse
 from app.security import get_current_team
 
@@ -16,6 +17,8 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 @router.post("", response_model=JobResponse, status_code=status.HTTP_202_ACCEPTED)
 async def create_job(
     payload: JobCreate,
+    request: Request,
+    response: Response,
     team: Team = Depends(get_current_team),
     session: AsyncSession = Depends(get_session),
 ) -> JobResponse:
@@ -39,5 +42,52 @@ async def create_job(
     session.add(job)
     await session.commit()
     await session.refresh(job)
+
+    response.headers["Location"] = str(request.url_for("get_job", job_id=job.id))
+
+    return JobResponse.model_validate(job)
+
+
+@router.get("", response_model=Page[JobResponse])
+async def list_jobs(
+    status_filter: JobStatus | None = Query(default=None, alias="status"),
+    image_id: uuid.UUID | None = None,
+    pagination: PaginationParams = Depends(),
+    team: Team = Depends(get_current_team),
+    session: AsyncSession = Depends(get_session),
+) -> Page[JobResponse]:
+    filters = [SegmentationJob.team_id == team.id]
+    if status_filter is not None:
+        filters.append(SegmentationJob.status == status_filter)
+    if image_id is not None:
+        filters.append(SegmentationJob.image_id == image_id)
+
+    total = await session.scalar(select(func.count()).select_from(SegmentationJob).where(*filters))
+    jobs = await session.scalars(
+        select(SegmentationJob)
+        .where(*filters)
+        .order_by(SegmentationJob.created_at.desc(), SegmentationJob.id.desc())
+        .limit(pagination.limit)
+        .offset(pagination.offset)
+    )
+
+    return Page[JobResponse](
+        items=jobs.all(), total=total, limit=pagination.limit, offset=pagination.offset
+    )
+
+
+@router.get("/{job_id}", response_model=JobResponse)
+async def get_job(
+    job_id: uuid.UUID,
+    team: Team = Depends(get_current_team),
+    session: AsyncSession = Depends(get_session),
+) -> JobResponse:
+    job = await session.scalar(
+        select(SegmentationJob).where(
+            SegmentationJob.id == job_id, SegmentationJob.team_id == team.id
+        )
+    )
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
     return JobResponse.model_validate(job)

@@ -50,6 +50,18 @@ def make_body(image_id, **params):
     return {"image_id": str(image_id), "params": params}
 
 
+def make_job(team, image, status=JobStatus.queued):
+    return SegmentationJob(
+        id=uuid.uuid4(),
+        team_id=team.id,
+        image_id=image.id,
+        status=status,
+        params={"algorithm": "kmeans", "k": 4, "max_iters": 100, "seed": 42},
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+
+
 def test_create_job_returns_202():
     team, session = make_team(), make_session()
     image = make_image(team)
@@ -84,6 +96,7 @@ def test_create_job_returns_202():
     assert job.status is JobStatus.queued
     assert job.params == body["params"]
     session.commit.assert_awaited_once()
+    assert response.headers["location"] == f"http://testserver/v1/jobs/{body['id']}"
 
 
 def test_create_job_scopes_image_lookup_to_team():
@@ -247,3 +260,98 @@ def test_create_job_invalid_image_id_returns_422():
         response = client.post("/v1/jobs", json={"image_id": "not-a-uuid", "params": params})
 
     assert response.status_code == 422
+
+
+def test_list_jobs_returns_page():
+    team, session = make_team(), make_session()
+    image = make_image(team)
+    jobs = [make_job(team, image), make_job(team, image, JobStatus.succeeded)]
+    session.scalar.return_value = 2
+    session.scalars.return_value = MagicMock(all=MagicMock(return_value=jobs))
+
+    with make_client(session, team) as client:
+        response = client.get("/v1/jobs", params={"limit": 10, "offset": 5})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["id"] for item in body["items"]] == [str(job.id) for job in jobs]
+    assert [item["status"] for item in body["items"]] == ["queued", "succeeded"]
+    assert (body["total"], body["limit"], body["offset"]) == (2, 10, 5)
+
+    stmt = session.scalars.call_args.args[0]
+    assert team.id in stmt.compile().params.values()
+
+
+def test_list_jobs_filters_by_status_and_image_id():
+    team, session = make_team(), make_session()
+    image = make_image(team)
+    session.scalar.return_value = 0
+    session.scalars.return_value = MagicMock(all=MagicMock(return_value=[]))
+
+    with make_client(session, team) as client:
+        response = client.get("/v1/jobs", params={"status": "running", "image_id": str(image.id)})
+
+    assert response.status_code == 200
+    for call in (session.scalar, session.scalars):
+        params = call.call_args.args[0].compile().params.values()
+        assert team.id in params
+        assert JobStatus.running in params
+        assert image.id in params
+
+
+def test_list_jobs_unknown_status_returns_422():
+    with make_client(make_session(), make_team()) as client:
+        response = client.get("/v1/jobs", params={"status": "pending"})
+
+    assert response.status_code == 422
+
+
+def test_list_jobs_limit_out_of_range_returns_422():
+    with make_client(make_session(), make_team()) as client:
+        response = client.get("/v1/jobs", params={"limit": 101})
+
+    assert response.status_code == 422
+
+
+def test_get_job_returns_200():
+    team, session = make_team(), make_session()
+    job = make_job(team, make_image(team))
+    session.scalar.return_value = job
+
+    with make_client(session, team) as client:
+        response = client.get(f"/v1/jobs/{job.id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == str(job.id)
+    assert body["status"] == "queued"
+    assert body["params"] == job.params
+
+    params = session.scalar.call_args.args[0].compile().params.values()
+    assert job.id in params
+    assert team.id in params
+
+
+def test_get_job_not_found_returns_404():
+    session = make_session()
+    session.scalar.return_value = None
+
+    with make_client(session, make_team()) as client:
+        response = client.get(f"/v1/jobs/{uuid.uuid4()}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Job not found"}
+
+
+def test_get_job_invalid_id_returns_422():
+    with make_client(make_session(), make_team()) as client:
+        response = client.get("/v1/jobs/not-a-uuid")
+
+    assert response.status_code == 422
+
+
+def test_get_job_without_api_key_returns_401():
+    with make_client(make_session()) as client:
+        response = client.get(f"/v1/jobs/{uuid.uuid4()}")
+
+    assert response.status_code == 401

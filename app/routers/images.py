@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,7 +59,7 @@ async def upload_image(
 
 @router.get("", response_model=Page[ImageResponse])
 async def list_images(
-    pagination: PaginationParams = Query(),
+    pagination: PaginationParams = Depends(),
     team: Team = Depends(get_current_team),
     session: AsyncSession = Depends(get_session),
 ) -> Page[ImageResponse]:
