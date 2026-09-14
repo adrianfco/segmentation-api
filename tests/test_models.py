@@ -71,13 +71,17 @@ def test_segmentation_job_columns_are_as_expected():
         "params",
         "result_path",
         "error_message",
+        "attempts",
+        "lease_expires_at",
         "created_at",
         "updated_at",
     } == set(columns.keys())
     assert columns["id"].primary_key
     assert not columns["params"].nullable
+    assert not columns["attempts"].nullable
     assert columns["result_path"].nullable
     assert columns["error_message"].nullable
+    assert columns["lease_expires_at"].nullable
     assert columns["created_at"].server_default is not None
     assert columns["updated_at"].server_default is not None
     assert columns["image_id"].index
@@ -107,8 +111,22 @@ def test_segmentation_job_params_is_jsonb():
     assert isinstance(columns["params"].type, JSONB)
 
 
+def test_segmentation_job_attempts_defaults_to_zero():
+    columns = Base.metadata.tables["segmentation_jobs"].columns
+
+    assert columns["attempts"].default.arg == 0
+    assert columns["attempts"].server_default is not None
+
+
 def test_segmentation_job_has_composite_team_status_index():
     table = Base.metadata.tables["segmentation_jobs"]
     index_columns = {index.name: [c.name for c in index.columns] for index in table.indexes}
 
     assert index_columns["ix_segmentation_jobs_team_id_status"] == ["team_id", "status"]
+
+
+def test_segmentation_job_has_composite_status_created_at_index():
+    table = Base.metadata.tables["segmentation_jobs"]
+    index_columns = {index.name: [c.name for c in index.columns] for index in table.indexes}
+
+    assert index_columns["ix_segmentation_jobs_status_created_at"] == ["status", "created_at"]
