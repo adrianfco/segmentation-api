@@ -1,6 +1,6 @@
 import asyncio
 
-from app import db
+from app.core import db
 from app.models import Base
 
 

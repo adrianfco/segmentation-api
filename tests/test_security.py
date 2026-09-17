@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
+from app.core.security import api_key_header, generate_api_key, get_current_team, hash_api_key
 from app.models import ApiKey, Team
-from app.security import api_key_header, generate_api_key, get_current_team, hash_api_key
 
 
 def test_api_key_header_scheme_is_declared():

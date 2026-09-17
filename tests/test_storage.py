@@ -4,9 +4,9 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
-from app import storage
-from app.config import get_settings
-from app.storage import StorageClient, StorageError
+from app.core import storage
+from app.core.config import get_settings
+from app.core.storage import StorageClient, StorageError
 
 BASE_URL = "https://example.supabase.co/storage/v1/"
 SERVICE_KEY = "service-key-that-must-not-leak"

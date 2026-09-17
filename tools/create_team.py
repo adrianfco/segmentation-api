@@ -3,7 +3,7 @@ import asyncio
 
 from sqlalchemy.exc import IntegrityError
 
-from app import db
+from app.core import db
 from app.models import Team
 
 

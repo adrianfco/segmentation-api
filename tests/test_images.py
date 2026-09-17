@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.config import Settings, get_settings
-from app.db import get_session
+from app.core.config import Settings, get_settings
+from app.core.db import get_session
+from app.core.security import get_current_team
+from app.core.storage import StorageError, get_storage
 from app.main import create_app
 from app.models import Image, Team
 from app.schemas.common import SignedUrlResponse
-from app.security import get_current_team
-from app.storage import StorageError, get_storage
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"rest-of-image"
 

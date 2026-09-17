@@ -7,7 +7,7 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_session
+from app.core.db import get_session
 from app.models import ApiKey, Team
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)

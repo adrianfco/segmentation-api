@@ -1,7 +1,7 @@
 import pytest
 
-from app import db
-from app.config import get_settings
+from app.core import db
+from app.core.config import get_settings
 
 REQUIRED_ENV = {
     "DATABASE_URL": "postgresql+psycopg://user:pw-that-must-not-leak@localhost:5432/postgres",

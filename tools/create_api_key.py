@@ -3,9 +3,9 @@ import asyncio
 
 from sqlalchemy import select
 
-from app import db
+from app.core import db
+from app.core.security import generate_api_key, hash_api_key
 from app.models import ApiKey, Team
-from app.security import generate_api_key, hash_api_key
 
 
 async def create_api_key(team_name: str, key_name: str) -> tuple[ApiKey, str]:

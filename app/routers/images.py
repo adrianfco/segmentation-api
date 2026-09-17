@@ -4,13 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings, get_settings
-from app.db import get_session
+from app.core.config import Settings, get_settings
+from app.core.db import get_session
+from app.core.security import get_current_team
+from app.core.storage import StorageClient, StorageError, get_storage
 from app.models import Image, Team
 from app.schemas.common import Page, PaginationParams, SignedUrlResponse
 from app.schemas.images import ImageResponse
-from app.security import get_current_team
-from app.storage import StorageClient, StorageError, get_storage
 
 router = APIRouter(prefix="/images", tags=["images"])
 
