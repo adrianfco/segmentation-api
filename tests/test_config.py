@@ -26,6 +26,8 @@ def test_defaults_apply_when_optional_vars_absent():
     assert settings.log_level == "INFO"
     assert settings.supabase_storage_bucket == "segmentation"
     assert settings.worker_concurrency == 2
+    assert settings.job_lease_seconds == 300
+    assert settings.job_max_attempts == 3
     assert settings.max_upload_size_mb == 10
 
 
@@ -51,6 +53,18 @@ def test_worker_concurrency_must_be_within_bounds(value):
 def test_max_upload_size_must_be_within_bounds(value):
     with pytest.raises(ValidationError):
         build(max_upload_size_mb=value)
+
+
+@pytest.mark.parametrize("value", [29, 3601])
+def test_job_lease_seconds_must_be_within_bounds(value):
+    with pytest.raises(ValidationError):
+        build(job_lease_seconds=value)
+
+
+@pytest.mark.parametrize("value", [0, 11])
+def test_job_max_attempts_must_be_within_bounds(value):
+    with pytest.raises(ValidationError):
+        build(job_max_attempts=value)
 
 
 def test_invalid_app_env_is_rejected():

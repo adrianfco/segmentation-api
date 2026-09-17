@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Workers
     worker_concurrency: int = Field(default=2, ge=1, le=64)
 
+    # Job Queue
+    job_lease_seconds: int = Field(default=300, ge=30, le=3600)
+    job_max_attempts: int = Field(default=3, ge=1, le=10)
+
     # Uploads
     max_upload_size_mb: int = Field(default=10, ge=1, le=50)
 
