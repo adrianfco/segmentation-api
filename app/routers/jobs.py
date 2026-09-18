@@ -32,7 +32,7 @@ async def create_job(
 
     params = payload.params.model_dump(exclude_none=True)
     if payload.params.seed is None:
-        params["seed"] = secrets.randbelow(2**32)
+        params["seed"] = secrets.randbelow(2**31)
 
     job = SegmentationJob(
         id=uuid.uuid4(),

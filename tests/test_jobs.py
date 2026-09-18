@@ -165,7 +165,7 @@ def test_create_job_generates_seed_when_omitted():
     assert response.status_code == 202
     seed = response.json()["params"]["seed"]
     assert isinstance(seed, int)
-    assert 0 <= seed < 2**32
+    assert 0 <= seed < 2**31
 
     [job] = session.add.call_args.args
     assert job.params["seed"] == seed
@@ -244,6 +244,7 @@ def test_create_job_kmeans_with_pfcm_params_returns_422():
         {"algorithm": "kmeans", "k": 4, "max_iters": 1001},
         {"algorithm": "kmeans", "k": 4},
         {"algorithm": "kmeans", "k": 4, "max_iters": 100, "seed": -1},
+        {"algorithm": "kmeans", "k": 4, "max_iters": 100, "seed": 2**31},
         {"algorithm": "pfcm", "k": 3, "max_iters": 50, "m": 1.0, "eta": 2.5},
         {"algorithm": "pfcm", "k": 3, "max_iters": 50, "m": 2.0, "eta": 1.0},
         {"algorithm": "kmeans", "k": 4, "max_iters": 100, "pfcm_m": 2.0},

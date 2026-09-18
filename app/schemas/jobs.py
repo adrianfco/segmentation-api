@@ -12,7 +12,7 @@ class _BaseParams(BaseModel):
 
     k: int = Field(ge=2, le=16)
     max_iters: int = Field(ge=1, le=1000)
-    seed: int | None = Field(default=None, ge=0, lt=2**32)
+    seed: int | None = Field(default=None, ge=0, lt=2**31)
 
 
 class KmeansParams(_BaseParams):
