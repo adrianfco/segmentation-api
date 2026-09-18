@@ -56,6 +56,32 @@ async def test_upload_duplicate_raises_409():
     assert exc_info.value.status_code == 409
 
 
+async def test_download_returns_object_bytes():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, content=b"\x89PNG\r\n")
+
+    data = await make_client(handler).download("team/img.png")
+
+    [request] = requests
+    assert request.method == "GET"
+    assert request.url == f"{BASE_URL}object/segmentation/team/img.png"
+    assert data == b"\x89PNG\r\n"
+
+
+async def test_download_missing_object_raises_404():
+    client = make_client(
+        lambda request: httpx.Response(400, json={"statusCode": "404", "error": "not_found"})
+    )
+
+    with pytest.raises(StorageError) as exc_info:
+        await client.download("team/missing.png")
+
+    assert exc_info.value.status_code == 404
+
+
 async def test_create_signed_url_returns_absolute_url():
     requests = []
 

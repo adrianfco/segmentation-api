@@ -27,6 +27,10 @@ class StorageClient:
             headers={"Content-Type": content_type, "x-upsert": "false"},
         )
 
+    async def download(self, path: str) -> bytes:
+        response = await self._request("GET", f"object/{self._bucket}/{path}")
+        return response.content
+
     async def create_signed_url(self, path: str, expires_in: int) -> SignedUrlResponse:
         expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
         response = await self._request(
