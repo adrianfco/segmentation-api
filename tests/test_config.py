@@ -26,6 +26,7 @@ def test_defaults_apply_when_optional_vars_absent():
     assert settings.log_level == "INFO"
     assert settings.supabase_storage_bucket == "segmentation"
     assert settings.worker_concurrency == 2
+    assert settings.worker_idle_poll_seconds == 2
     assert settings.job_lease_seconds == 300
     assert settings.job_max_attempts == 3
     assert settings.max_upload_size_mb == 10
@@ -47,6 +48,12 @@ def test_numeric_values_coerce_from_strings():
 def test_worker_concurrency_must_be_within_bounds(value):
     with pytest.raises(ValidationError):
         build(worker_concurrency=value)
+
+
+@pytest.mark.parametrize("value", [0, 31])
+def test_worker_idle_poll_seconds_must_be_within_bounds(value):
+    with pytest.raises(ValidationError):
+        build(worker_idle_poll_seconds=value)
 
 
 @pytest.mark.parametrize("value", [0, 51])

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     # Workers
     worker_concurrency: int = Field(default=2, ge=1, le=64)
+    worker_idle_poll_seconds: int = Field(default=2, ge=1, le=30)
 
     # Job Queue
     job_lease_seconds: int = Field(default=300, ge=30, le=3600)
