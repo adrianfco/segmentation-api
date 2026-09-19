@@ -24,3 +24,6 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
+
+# Demo script output
+scripts/segmented-example.png
