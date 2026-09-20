@@ -1,10 +1,10 @@
 # segmentation-api
 
-REST API for asynchronous image segmentation — multi-tenant, containerized, and tested end to end.
+REST API for asynchronous image segmentation. Multi-tenant, containerized, and tested end to end.
 
 Clients upload a PNG, ask for it to be segmented, and poll until a result is ready. The API and the
 workers are **separate containers that scale independently**: segmentation is CPU-bound C++ and runs
-in a worker process pool, never on the API's event loop. Workers pull jobs from a Postgres-backed
+in a worker process pool, not on the API's event loop. Workers pull jobs from a Postgres-backed
 job queue with atomic claims, leases and retries.
 
 The segmentation engine is [segmentation-core](https://github.com/adrianfco/segmentation-core),
@@ -19,8 +19,7 @@ Alembic · Supabase Storage · Docker · pytest + testcontainers · ruff · GitH
 
 ## Demo
 
-`scripts/demo.py` drives the whole pipeline against a running stack — upload → job → poll → download —
-printing every HTTP request and response as it goes.
+`scripts/demo.py` drives the whole pipeline against a running stack.
 
 ![Demo: scripts/demo.py running end to end](docs/demo.gif)
 
@@ -55,23 +54,13 @@ Downloaded 284713 bytes -> scripts/segmented-example.png
 
 ![System architecture](docs/architecture.svg)
 
-The API and the worker are **the same image with two entrypoints**, scaled independently:
+Key files:
 
-1. `POST /v1/images` validates the upload (magic bytes, size cap), writes the object to Supabase Storage, then the row to Postgres.
-2. `POST /v1/jobs` writes a `queued` row and returns `202` immediately — the request never waits on compute.
-3. A worker **claims** the oldest claimable job with `SELECT … FOR UPDATE SKIP LOCKED`, takes a time-bounded lease, and runs segmentation in a subprocess pool.
-4. On success it uploads the result and flips the job to `succeeded`; a reported failure records `error_message` and is terminal, while a worker that dies without answering has its lease expire and the job reclaimed — up to `JOB_MAX_ATTEMPTS`.
-5. `GET /v1/jobs/{id}/result-url` hands back a short-lived signed URL — the image bytes never flow back through the API.
-
-Where the load-bearing parts live:
-
-| | |
-| --- | --- |
-| [`app/core/queue.py`](app/core/queue.py) | Job claim via `SELECT … FOR UPDATE SKIP LOCKED`, with leases, bounded retries, and status-guarded completion |
-| [`app/worker.py`](app/worker.py) | Poll loop and `ProcessPoolExecutor` — segmentation-core holds the GIL, so threads would not parallelize |
-| [`app/core/security.py`](app/core/security.py) | Hashed API keys; `/v1` mounted behind a single auth dependency, every query team-scoped |
-| [`app/schemas/jobs.py`](app/schemas/jobs.py) | Per-algorithm job params as a Pydantic discriminated union |
-| [`tests/test_queue.py`](tests/test_queue.py) | Concurrency and lease-expiry tests against a real Postgres 16 container |
+- [`app/core/queue.py`](app/core/queue.py): job claim via `SELECT … FOR UPDATE SKIP LOCKED`, with leases, bounded retries and status-guarded completion
+- [`app/worker.py`](app/worker.py): poll loop and `ProcessPoolExecutor`, since segmentation-core holds the GIL and threads would not parallelize
+- [`app/core/security.py`](app/core/security.py): hashed API keys, `/v1` mounted behind a single auth dependency, every query team-scoped
+- [`app/schemas/jobs.py`](app/schemas/jobs.py): per-algorithm job params as a Pydantic discriminated union
+- [`tests/test_queue.py`](tests/test_queue.py): concurrency and lease-expiry tests against a real Postgres 16 container
 
 ---
 
@@ -88,7 +77,7 @@ All `/v1` routes require an `X-API-Key` header. Lists are `limit`/`offset` pagin
 | `GET` | `/v1/images/{id}/download-url` | Signed URL for the original |
 | `POST` | `/v1/jobs` | Enqueue a segmentation job → `202` + `Location` |
 | `GET` | `/v1/jobs?status=&image_id=` | List jobs, filterable |
-| `GET` | `/v1/jobs/{id}` | Job detail — poll this |
+| `GET` | `/v1/jobs/{id}` | Job detail (poll this) |
 | `GET` | `/v1/jobs/{id}/result-url` | Signed URL for the result, `409` unless `succeeded` |
 
 Errors return `{"detail": "..."}`: `401` unauthenticated, `404` not found *or not yours*, `409` wrong
@@ -102,7 +91,7 @@ Interactive OpenAPI docs are served at `/docs`.
 ## Running it
 
 **Requirements:** Docker, and a [Supabase](https://supabase.com) project (Postgres + a private
-storage bucket). No C++ toolchain is needed — segmentation-core ships prebuilt wheels.
+storage bucket). No C++ toolchain needed, since segmentation-core ships prebuilt wheels.
 
 ```bash
 cp .env.example .env          # fill in DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -113,12 +102,12 @@ python -m tools.create_team demo
 python -m tools.create_api_key demo local
 # → Key (store this now, it will not be shown again): <raw key>
 
-docker compose up --build     # API on :8000, plus a worker — same image, two entrypoints
+docker compose up --build     # API on :8000, plus a worker (same image, two entrypoints)
 python scripts/demo.py <raw key>
 ```
 
-The runtime image ships only the application package. Migrations, admin tooling and tests are
-operator concerns that talk to Supabase directly, so they stay out of the container.
+The runtime image only ships the `app` package. Migrations, admin tools and tests talk to
+Supabase directly, so they stay out of the container.
 
 <details>
 <summary>Running it without Docker</summary>
@@ -151,9 +140,9 @@ app/
 alembic/           Migrations
 tools/             Admin CLIs: create_team, create_api_key
 scripts/demo.py    End-to-end demo against a running stack
-tests/             138 tests — unit + real-Postgres integration
+tests/             138 tests, unit + real-Postgres integration
 ```
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

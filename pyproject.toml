@@ -9,7 +9,7 @@ description = "FastAPI backend service for asynchronous image segmentation with 
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "Adrian Franco" }]
+authors = [{ name = "Adrian Lopez" }]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
