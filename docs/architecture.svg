@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 680" width="1320" height="680"
+     font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace">
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0.6 L 10 5 L 0 9.4 z" fill="#1f2328"/>
+    </marker>
+    <marker id="arwg" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 0.6 L 10 5 L 0 9.4 z" fill="#9aa3ad"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1320" height="680" fill="#f8fafc"/>
+
+  <!-- ===== group frames ===== -->
+  <rect x="400" y="56" width="350" height="548" rx="6" fill="none" stroke="#4a63e7" stroke-width="2" stroke-dasharray="9 7"/>
+  <rect x="1000" y="56" width="280" height="548" rx="6" fill="none" stroke="#17935f" stroke-width="2" stroke-dasharray="9 7"/>
+
+  <g transform="translate(418,66) scale(1.083)"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z" fill="#2496ED"/></g>
+  <text x="456" y="87" font-size="14.5" font-weight="600" fill="#4a63e7">Docker</text>
+
+  <g transform="translate(1018,66) scale(1.083)"><path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C-.33 13.427.65 15.455 2.409 15.455h9.579l.113 7.51c.014.985 1.259 1.408 1.873.636l9.262-11.653c1.093-1.375.113-3.403-1.645-3.403h-9.642z" fill="#3FCF8E"/></g>
+  <text x="1056" y="87" font-size="14.5" font-weight="600" fill="#17935f">Supabase</text>
+
+  <!-- ===== nodes ===== -->
+  <rect x="24" y="112" width="200" height="112" rx="10" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <text x="124" y="159" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1f2328">HTTP Client</text>
+  <text x="124" y="182" text-anchor="middle" font-size="12" fill="#98a1ab">scripts/demo.py</text>
+
+  <rect x="436" y="112" width="280" height="112" rx="10" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <text x="576" y="156" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1f2328">API Container</text>
+  <text x="576" y="179" text-anchor="middle" font-size="12" fill="#98a1ab">uvicorn app.main:app</text>
+
+  <rect x="420" y="380" width="280" height="112" rx="10" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <rect x="428" y="388" width="280" height="112" rx="10" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <rect x="436" y="396" width="280" height="112" rx="10" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <text x="576" y="440" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1f2328">Worker Container</text>
+  <text x="576" y="463" text-anchor="middle" font-size="12" fill="#98a1ab">python -m app.worker</text>
+
+  <circle cx="1140" cy="186" r="88" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <text x="1140" y="181" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1f2328">Postgres DB</text>
+  <text x="1140" y="202" text-anchor="middle" font-size="11" fill="#5a6570">segmentation_jobs</text>
+
+  <circle cx="1140" cy="478" r="88" fill="#ffffff" stroke="#1f2328" stroke-width="2.2"/>
+  <text x="1140" y="473" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1f2328">Object Storage</text>
+  <text x="1140" y="494" text-anchor="middle" font-size="11" fill="#5a6570">images/ · results/</text>
+
+  <!-- ===== arrows ===== -->
+
+  <!-- client <-> api -->
+  <line x1="226" y1="168" x2="432" y2="168" stroke="#1f2328" stroke-width="2" marker-end="url(#arw)"/>
+  <text x="270" y="128" font-size="11.5" fill="#1f2328">POST /v1/images</text>
+  <text x="270" y="143" font-size="11.5" fill="#1f2328">POST /v1/jobs</text>
+  <text x="270" y="158" font-size="11.5" fill="#1f2328">GET  …/result-url</text>
+
+  <!-- api <-> postgres -->
+  <line x1="718" y1="140" x2="1065" y2="140" stroke="#1f2328" stroke-width="2" marker-end="url(#arw)" marker-start="url(#arw)"/>
+  <text x="880" y="130" text-anchor="middle" font-size="11.5" fill="#1f2328">image · job rows</text>
+
+  <!-- api <-> storage : lane B (x=872). Drawn FIRST so it is the line that hops. -->
+  <path d="M 718 212 H 870 V 450 H 1056" fill="none" stroke="#1f2328" stroke-width="2" marker-end="url(#arw)" marker-start="url(#arw)"/>
+  <text x="935" y="440" text-anchor="middle" font-size="11.5" fill="#1f2328">upload original</text>
+
+  <!-- line hop: background patch over the horizontal, then the vertical redrawn on top -->
+  <rect x="792" y="205" width="16" height="14" fill="#f8fafc"/>
+
+  <!-- worker <-> postgres : lane A (x=800), continuous through the crossing -->
+  <path d="M 718 424 H 800 V 180 H 1052" fill="none" stroke="#1f2328" stroke-width="2" marker-end="url(#arw)" marker-start="url(#arw)"/>
+  <text x="905" y="170" text-anchor="middle" font-size="11.5" fill="#1f2328">claim · lease · complete</text>
+
+  <!-- worker <-> storage -->
+  <line x1="718" y1="506" x2="1056" y2="506" stroke="#1f2328" stroke-width="2" marker-end="url(#arw)" marker-start="url(#arw)"/>
+  <text x="880" y="496" text-anchor="middle" font-size="11.5" fill="#1f2328">source · result</text>
+
+  <!-- signed-URL: result bytes go straight to the client -->
+  <path d="M 1140 568 C 1080 654, 470 674, 236 582 C 150 548, 124 372, 124 228"
+        fill="none" stroke="#9aa3ad" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#arwg)"/>
+  <text x="638" y="633" text-anchor="middle" font-size="11.5" fill="#6e7781">signed-URL</text>
+</svg>
