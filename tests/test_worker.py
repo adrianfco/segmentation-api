@@ -1,9 +1,11 @@
 import asyncio
+import contextlib
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
 import httpx
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.worker as worker
@@ -109,3 +111,36 @@ async def test_process_job_failed_when_segmentation_reports_failure(db_session, 
     refreshed = await db_session.get(SegmentationJob, job_id)
     assert refreshed.status == JobStatus.failed
     assert refreshed.error_message == "boom"
+
+
+async def test_worker_loop_survives_claim_error(monkeypatch):
+    recovered = asyncio.Event()
+    claims = 0
+
+    class FlakyQueue:
+        def __init__(self, *args):
+            pass
+
+        async def claim(self):
+            nonlocal claims
+            claims += 1
+            if claims == 1:
+                raise OperationalError("SELECT", {}, Exception("server closed the connection"))
+            recovered.set()
+
+    monkeypatch.setattr(worker, "PostgresJobQueue", FlakyQueue)
+    monkeypatch.setattr(worker, "get_sessionmaker", lambda: contextlib.nullcontext)
+    monkeypatch.setattr(worker, "get_storage", lambda: None)
+    monkeypatch.setattr(
+        worker,
+        "get_settings",
+        lambda: SimpleNamespace(
+            job_lease_seconds=300, job_max_attempts=3, worker_idle_poll_seconds=0
+        ),
+    )
+
+    task = asyncio.create_task(worker._worker_loop(0, None))
+    try:
+        await asyncio.wait_for(recovered.wait(), timeout=1)
+    finally:
+        task.cancel()

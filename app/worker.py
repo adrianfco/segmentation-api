@@ -21,10 +21,6 @@ logger = logging.getLogger(__name__)
 def _run_segmentation(
     input_path: str, output_path: str, **kwargs: object
 ) -> tuple[bool, str | None]:
-    # segment_image is a pybind11 binding: neither it nor its SegmentationResult
-    # return value can be pickled across a ProcessPoolExecutor boundary, so this
-    # plain function (picklable by reference) does the call and hands back only
-    # the plain values _process_job needs.
     result = segment_image(input_path, output_path, **kwargs)
     return result.success, result.error_message
 
@@ -78,19 +74,25 @@ async def _worker_loop(worker_id: int, pool: ProcessPoolExecutor) -> None:
     loop = asyncio.get_running_loop()
 
     while True:
-        async with get_sessionmaker()() as session:
-            queue = PostgresJobQueue(session, settings.job_lease_seconds, settings.job_max_attempts)
-            job = await queue.claim()
-            if job is None:
-                await asyncio.sleep(settings.worker_idle_poll_seconds)
-                continue
+        try:
+            async with get_sessionmaker()() as session:
+                queue = PostgresJobQueue(
+                    session, settings.job_lease_seconds, settings.job_max_attempts
+                )
+                job = await queue.claim()
+                if job is None:
+                    await asyncio.sleep(settings.worker_idle_poll_seconds)
+                    continue
 
-            logger.info("worker %d claimed job %s", worker_id, job.id)
-            try:
-                await _process_job(job, session, storage, queue, pool, loop)
-            except Exception:
-                logger.exception("worker %d failed job %s", worker_id, job.id)
-                await queue.fail(job.id, "Unexpected worker error")
+                logger.info("worker %d claimed job %s", worker_id, job.id)
+                try:
+                    await _process_job(job, session, storage, queue, pool, loop)
+                except Exception:
+                    logger.exception("worker %d failed job %s", worker_id, job.id)
+                    await queue.fail(job.id, "Unexpected worker error")
+        except Exception:
+            logger.exception("worker %d loop error", worker_id)
+            await asyncio.sleep(settings.worker_idle_poll_seconds)
 
 
 async def main() -> None:
