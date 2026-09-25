@@ -57,7 +57,7 @@ Downloaded 284713 bytes -> scripts/segmented-example.png
 Key files:
 
 - [`app/core/queue.py`](app/core/queue.py): job claim via `SELECT … FOR UPDATE SKIP LOCKED`, with leases, bounded retries and status-guarded completion
-- [`app/worker.py`](app/worker.py): poll loop and `ProcessPoolExecutor`, since segmentation-core holds the GIL and threads would not parallelize
+- [`app/worker.py`](app/worker.py): poll loop that runs each segmentation in a `ProcessPoolExecutor`, off the event loop
 - [`app/core/security.py`](app/core/security.py): hashed API keys, `/v1` mounted behind a single auth dependency, every query team-scoped
 - [`app/schemas/jobs.py`](app/schemas/jobs.py): per-algorithm job params as a Pydantic discriminated union
 - [`tests/test_queue.py`](tests/test_queue.py): concurrency and lease-expiry tests against a real Postgres 16 container
