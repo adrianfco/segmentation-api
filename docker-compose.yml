@@ -3,6 +3,7 @@ services:
     build: .
     image: segmentation-api:local
     env_file: .env
+    restart: unless-stopped
     ports:
       - "8000:8000"
 
@@ -11,3 +12,4 @@ services:
     image: segmentation-api:local
     env_file: .env
     command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
