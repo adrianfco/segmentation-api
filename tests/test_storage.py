@@ -45,6 +45,19 @@ async def test_upload_sends_file_to_bucket_path():
     assert request.headers["x-upsert"] == "false"
 
 
+async def test_upload_with_upsert_sends_true_header():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json={"Key": "segmentation/team/img.png"})
+
+    await make_client(handler).upload("team/img.png", b"\x89PNG", "image/png", upsert=True)
+
+    [request] = requests
+    assert request.headers["x-upsert"] == "true"
+
+
 async def test_upload_duplicate_raises_409():
     client = make_client(
         lambda request: httpx.Response(400, json={"statusCode": "409", "error": "Duplicate"})

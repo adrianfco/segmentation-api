@@ -64,7 +64,7 @@ async def _process_job(
             return
 
         result_path = f"{job.team_id}/results/{job.id}.png"
-        await storage.upload(result_path, output_path.read_bytes(), "image/png")
+        await storage.upload(result_path, output_path.read_bytes(), "image/png", upsert=True)
         await queue.complete(job.id, result_path)
 
 

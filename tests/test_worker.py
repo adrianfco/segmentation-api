@@ -90,6 +90,7 @@ async def test_process_job_succeeded_path(db_session, monkeypatch):
     [upload] = uploads
     assert upload.url == f"{BASE_URL}object/segmentation/{refreshed.result_path}"
     assert upload.content == b"segmented-png-bytes"
+    assert upload.headers["x-upsert"] == "true"
 
 
 async def test_process_job_failed_when_segmentation_reports_failure(db_session, monkeypatch):

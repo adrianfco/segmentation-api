@@ -19,12 +19,14 @@ class StorageClient:
         self._http = http
         self._bucket = bucket
 
-    async def upload(self, path: str, data: bytes, content_type: str) -> None:
+    async def upload(
+        self, path: str, data: bytes, content_type: str, *, upsert: bool = False
+    ) -> None:
         await self._request(
             "POST",
             f"object/{self._bucket}/{path}",
             content=data,
-            headers={"Content-Type": content_type, "x-upsert": "false"},
+            headers={"Content-Type": content_type, "x-upsert": "true" if upsert else "false"},
         )
 
     async def download(self, path: str) -> bytes:
